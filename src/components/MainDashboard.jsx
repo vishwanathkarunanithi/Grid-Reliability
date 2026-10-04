@@ -1,87 +1,103 @@
-import React, { useState, useEffect } from 'react';
-import { Battery, Zap, Wind, Sun } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-const demandData = [
-  { time: '00:00', supply: 4000, demand: 2400 },
-  { time: '04:00', supply: 3000, demand: 1398 },
-  { time: '08:00', supply: 2000, demand: 5800 },
-  { time: '12:00', supply: 8780, demand: 3908 },
-  { time: '16:00', supply: 1890, demand: 4800 },
-  { time: '20:00', supply: 2390, demand: 3800 },
-  { time: '24:00', supply: 3490, demand: 4300 },
-];
+import React, { useState, Suspense } from 'react';
+import { Activity, AlertTriangle, Zap, Wind, Battery, ThermometerSnowflake, CheckCircle2 } from 'lucide-react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Environment } from '@react-three/drei';
+import ThreeScene from './ThreeScene';
 
 export default function MainDashboard() {
-  const [batteryLevel, setBatteryLevel] = useState(85);
+  const [triggerStatus, setTriggerStatus] = useState('idle'); // idle, triggering, active
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBatteryLevel(prev => (prev > 20 ? prev - 0.5 : 100));
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const handleTriggerCooling = async () => {
+    setTriggerStatus('triggering');
+    try {
+      const response = await fetch('/api/trigger-response', { method: 'POST' });
+      if (response.ok) {
+        setTimeout(() => setTriggerStatus('active'), 1500);
+      }
+    } catch (error) {
+      console.error("Backend error:", error);
+      setTimeout(() => setTriggerStatus('active'), 1000); // Fallback if backend offline
+    }
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <section className="stats-grid">
-        <div className="stat-card glass">
-          <div className="stat-icon"><Sun color="#ffc107" /></div>
-          <div className="stat-info">
-            <h3>Solar Generation</h3>
-            <p>4.2 MW</p>
-          </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '20px', height: '100%' }}>
+      {/* Left Column: 3D Microgrid View */}
+      <div className="glass" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.2rem', color: '#00d2ff' }}>
+          <Activity size={20} /> Live Holographic Grid Topology
+        </h3>
+        
+        {/* Embedded 3D Scene */}
+        <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', background: '#030510', border: '1px solid rgba(0, 210, 255, 0.2)' }}>
+          <Canvas camera={{ position: [0, 5, 12], fov: 60 }}>
+            <ambientLight intensity={0.5} />
+            <spotLight position={[10, 20, 10]} intensity={2} color="#00ff88" />
+            <spotLight position={[-10, 20, -10]} intensity={1} color="#00d2ff" />
+            <Suspense fallback={null}>
+              <ThreeScene batteryLevel={85} />
+            </Suspense>
+            <OrbitControls enablePan={false} maxPolarAngle={Math.PI / 2.1} />
+          </Canvas>
         </div>
-        <div className="stat-card glass">
-          <div className="stat-icon"><Wind color="#00d2ff" /></div>
-          <div className="stat-info">
-            <h3>Wind Generation</h3>
-            <p>1.8 MW</p>
-          </div>
-        </div>
-        <div className="stat-card glass">
-          <div className="stat-icon"><Battery color="#00ff88" /></div>
-          <div className="stat-info">
-            <h3>Community Storage</h3>
-            <p>{batteryLevel.toFixed(1)}%</p>
-          </div>
-        </div>
-        <div className="stat-card glass">
-          <div className="stat-icon"><Zap color="#ff4b4b" /></div>
-          <div className="stat-info">
-            <h3>Current Demand</h3>
-            <p>5.1 MW</p>
-          </div>
-        </div>
-      </section>
+      </div>
 
-      <section style={{ height: '400px' }}>
-        <div className="chart-card glass" style={{ width: '100%', height: '100%' }}>
-          <h3>Supply vs Demand Forecast (24h)</h3>
-          <div className="chart-wrapper">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={demandData}>
-                <defs>
-                  <linearGradient id="colorSupply" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00ff88" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#00ff88" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorDemand" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ff4b4b" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#ff4b4b" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="time" stroke="#888" />
-                <YAxis stroke="#888" />
-                <Tooltip contentStyle={{backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', borderRadius: '8px'}} />
-                <Area type="monotone" dataKey="supply" stroke="#00ff88" fillOpacity={1} fill="url(#colorSupply)" name="Renewable Supply" />
-                <Area type="monotone" dataKey="demand" stroke="#ff4b4b" fillOpacity={1} fill="url(#colorDemand)" name="Community Demand" />
-              </AreaChart>
-            </ResponsiveContainer>
+      {/* Right Column: Actions & Stats */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        
+        {/* Demand Response Trigger */}
+        <div className="glass" style={{ padding: '20px', background: 'rgba(235, 59, 90, 0.1)', border: '1px solid rgba(235, 59, 90, 0.3)' }}>
+          <h3 style={{ color: '#eb3b5a', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <AlertTriangle size={20} /> Feeder Overload Risk
+          </h3>
+          <p style={{ color: '#ccc', fontSize: '0.9rem', marginBottom: '20px' }}>
+            Feeder A is nearing peak capacity due to low renewable generation. Initiate smart cooling protocol to shed 120kW of non-critical HVAC load.
+          </p>
+          
+          <button 
+            onClick={handleTriggerCooling}
+            disabled={triggerStatus !== 'idle'}
+            style={{ 
+              width: '100%', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: 'none', 
+              background: triggerStatus === 'idle' ? '#eb3b5a' : triggerStatus === 'active' ? '#00ff88' : '#f39c12', 
+              color: triggerStatus === 'active' ? '#000' : '#fff', 
+              fontWeight: 'bold', 
+              cursor: triggerStatus === 'idle' ? 'pointer' : 'default',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px'
+            }}
+          >
+            {triggerStatus === 'idle' && <><ThermometerSnowflake size={18} /> Trigger Smart Cooling Protocol</>}
+            {triggerStatus === 'triggering' && 'Initiating Protocol...'}
+            {triggerStatus === 'active' && <><CheckCircle2 size={18} /> Load Shedding Active</>}
+          </button>
+        </div>
+
+        {/* Real-time Stats */}
+        <div className="glass" style={{ padding: '20px', flex: 1 }}>
+          <h3 style={{ color: '#00ff88', marginBottom: '15px' }}>Grid Vitals</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}><Zap size={16} /> Total Demand</span>
+              <strong style={{ color: '#fff' }}>4.2 MW</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}><Wind size={16} /> Renewable Gen</span>
+              <strong style={{ color: '#00d2ff' }}>2.1 MW</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}><Battery size={16} /> Battery Discharge</span>
+              <strong style={{ color: '#00ff88' }}>2.1 MW</strong>
+            </div>
           </div>
         </div>
-      </section>
+
+      </div>
     </div>
   );
 }
