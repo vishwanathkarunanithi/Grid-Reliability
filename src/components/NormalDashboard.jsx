@@ -6,6 +6,7 @@ import CommunityView from './CommunityView';
 import DiscomView from './DiscomView';
 import LoadManagementView from './LoadManagementView';
 import ForecastingView from './ForecastingView';
+import SettingsView from './SettingsView';
 import '../App.css';
 
 export default function NormalDashboard() {
@@ -19,7 +20,7 @@ export default function NormalDashboard() {
       case 'discom': return <DiscomView />;
       case 'load': return <LoadManagementView />;
       case 'forecast': return <ForecastingView />;
-      case 'settings': return <div className="glass" style={{padding: '2rem'}}><h2>Settings module coming soon...</h2></div>;
+      case 'settings': return <SettingsView />;
       default: return <MainDashboard />;
     }
   };
