@@ -1,3 +1,4 @@
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 .app-container {
   display: flex;
   height: 100vh;
@@ -237,4 +238,15 @@ button:active {
   transform: translateY(1px);
   filter: brightness(0.9);
   box-shadow: 0 0 4px currentColor;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes highlightPulse {
+  0% { box-shadow: 0 0 0px rgba(0, 210, 255, 0); transform: scale(1); }
+  30% { box-shadow: 0 0 30px rgba(0, 210, 255, 0.8); transform: scale(1.02); }
+  100% { box-shadow: 0 0 0px rgba(0, 210, 255, 0); transform: scale(1); }
 }

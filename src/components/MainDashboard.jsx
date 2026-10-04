@@ -92,6 +92,7 @@ export default function MainDashboard() {
               boxShadow: triggerStatus === 'idle' ? '0 0 15px rgba(235,59,90,0.5)' : 'none',
               transform: triggerStatus === 'active' ? 'scale(0.98)' : 'scale(1)'
             }}
+            title="Force a load shedding event on the grid to protect feeder limits."
           >
             {triggerStatus === 'idle' && <><ThermometerSnowflake size={18} /> Trigger Smart Cooling Protocol</>}
             {triggerStatus === 'triggering' && 'Initiating Protocol...'}
@@ -100,7 +101,7 @@ export default function MainDashboard() {
         </div>
 
         {/* Real-time Stats */}
-        <div className="glass" style={{ padding: '20px', flex: 1 }}>
+        <div id="stats-area" className="glass" style={{ padding: '20px', flex: 1, borderRadius: '12px' }}>
           <h3 style={{ color: '#00ff88', marginBottom: '15px' }}>Grid Vitals</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
@@ -119,6 +120,18 @@ export default function MainDashboard() {
         </div>
 
       </div>
+
+      <ConfirmModal 
+        isOpen={!!modalConfig}
+        title={modalConfig?.title}
+        message={modalConfig?.message}
+        highlightArea={modalConfig?.highlightArea}
+        onConfirm={() => {
+          if (modalConfig?.action) modalConfig.action();
+          setModalConfig(null);
+        }}
+        onCancel={() => setModalConfig(null)}
+      />
     </div>
   );
 }

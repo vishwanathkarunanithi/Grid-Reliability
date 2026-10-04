@@ -1,234 +1,181 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Zap, Map as MapIcon, Plus, X, Server, Download, Activity, Leaf, ArrowRightLeft } from 'lucide-react';
+import { Network, ArrowRightLeft, DollarSign, Download, Zap, Leaf, Map as MapIcon, RefreshCw, Activity } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
+import L from 'leaflet';
+import ConfirmModal from './ConfirmModal';
+
+// Fix for default leaflet icons not showing in React Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 export default function CommunityView() {
-  const [showMap, setShowMap] = useState(false);
-  const [nodes, setNodes] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [marketPrice, setMarketPrice] = useState(12.4);
+  const [transactions, setTransactions] = useState([
+    { id: 'tx-1', from: 'Solar Farm Alpha', to: 'Hospital Block', amount: 150, rate: 0.12, timestamp: '14:32:45' },
+    { id: 'tx-2', from: 'Residential Grid 3', to: 'EV Charging Hub', amount: 45, rate: 0.11, timestamp: '14:31:12' },
+    { id: 'tx-3', from: 'Wind Park North', to: 'Data Center', amount: 320, rate: 0.10, timestamp: '14:28:50' },
+    { id: 'tx-4', from: 'Storage Hub Beta', to: 'Commercial Sector', amount: 85, rate: 0.14, timestamp: '14:25:33' }
+  ]);
 
-  // Fetch initial nodes and setup dynamic transactions
+  const [mapNodes] = useState([
+    { id: 1, name: "Solar Farm Alpha", role: "Producer", lat: 13.0827, lng: 80.2707, power: "+1.2 MW" },
+    { id: 2, name: "Hospital Block", role: "Consumer", lat: 13.0850, lng: 80.2750, power: "-450 kW" },
+    { id: 3, name: "Wind Park North", role: "Producer", lat: 13.0900, lng: 80.2650, power: "+2.5 MW" },
+    { id: 4, name: "Storage Hub Beta", role: "Prosumer", lat: 13.0780, lng: 80.2720, power: "Standby" },
+  ]);
+
+  const [modalConfig, setModalConfig] = useState(null);
+
   useEffect(() => {
-    fetch('/api/community/nodes')
-      .then(res => res.json())
-      .then(data => setNodes(data))
-      .catch(err => {
-        console.log('Mock');
-        setNodes([
-          { id: 1, name: 'Hospital', type: 'critical', x: 2, y: 1 },
-          { id: 2, name: 'Solar Farm Array', type: 'producer', x: 5, y: 2 },
-          { id: 3, name: 'Residential Block A', type: 'consumer', x: 3, y: 4 },
-        ]);
-      });
-
-    // Generate fake transactions every 3 seconds
-    const txInterval = setInterval(() => {
-      setMarketPrice(prev => +(prev + (Math.random() * 0.4 - 0.2)).toFixed(2));
-      setTransactions(prev => {
-        const newTx = {
-          id: Date.now(),
-          time: new Date().toLocaleTimeString(),
-          seller: Math.random() > 0.5 ? 'Solar Farm Array' : 'Prosumer Home ' + Math.floor(Math.random() * 10),
-          buyer: Math.random() > 0.5 ? 'Hospital' : 'Residential Block A',
-          amount: +(Math.random() * 50 + 10).toFixed(1),
-          price: marketPrice
-        };
-        return [newTx, ...prev].slice(0, 8); // Keep last 8
-      });
-    }, 3000);
-
-    return () => clearInterval(txInterval);
-  }, [marketPrice]);
-
-  const handleMapClick = (x, y) => {
-    if (!nodes.find(n => n.x === x && n.y === y)) {
-      const newNode = { id: Date.now(), name: `Prosumer Node ${nodes.length + 1}`, type: 'consumer', x, y };
-      setNodes([...nodes, newNode]);
-      try {
-        fetch('/api/community/nodes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newNode)
-        });
-      } catch (err) {}
-    }
-  };
+    const interval = setInterval(() => {
+      const newTx = {
+        id: `tx-${Math.floor(Math.random() * 10000)}`,
+        from: mapNodes[Math.floor(Math.random() * mapNodes.length)].name,
+        to: ['EV Hub', 'Data Center', 'Res Block', 'Hospital'][Math.floor(Math.random() * 4)],
+        amount: Math.floor(Math.random() * 200) + 10,
+        rate: +(0.10 + Math.random() * 0.05).toFixed(2),
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setTransactions(prev => [newTx, ...prev].slice(0, 8));
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [mapNodes]);
 
   const exportCSV = () => {
-    const headers = ['ID', 'Time', 'Seller', 'Buyer', 'Amount (kWh)', 'Price (cents/kWh)'];
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + transactions.map(t => `${t.id},${t.time},${t.seller},${t.buyer},${t.amount},${t.price}`).join("\n");
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "p2p_energy_ledger.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    setModalConfig({
+      title: 'Export Ledger',
+      message: 'Are you sure you want to download the recent P2P blockchain ledger as a CSV file?',
+      action: () => {
+        const header = "ID,From,To,Amount(kW),Rate($/kWh),Timestamp\n";
+        const csv = transactions.map(t => `${t.id},${t.from},${t.to},${t.amount},${t.rate},${t.timestamp}`).join('\n');
+        const blob = new Blob([header + csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'p2p_ledger_export.csv';
+        a.click();
+      }
+    });
+  };
+
+  const forceMarketClear = () => {
+    setModalConfig({
+      title: 'Force Market Clear',
+      message: 'This will forcefully settle all pending P2P energy trades immediately. Proceed?',
+      highlightArea: 'ledger-list',
+      action: () => {
+        // Flash empty and rebuild
+        setTransactions([]);
+        setTimeout(() => {
+          setTransactions([
+            { id: 'sys-clear', from: 'Market Maker', to: 'System', amount: 0, rate: 0, timestamp: new Date().toLocaleTimeString() }
+          ]);
+        }, 500);
+      }
+    });
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflowY: 'auto', paddingRight: '10px' }}>
       
       {/* Top Metrics Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
         <div className="glass" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ background: 'rgba(0, 210, 255, 0.2)', padding: '15px', borderRadius: '50%' }}><Activity color="#00d2ff"/></div>
-          <div><p style={{ margin: 0, color: '#ccc' }}>Market Rate</p><h2 style={{ margin: 0, color: '#fff' }}>{marketPrice} ¢/kWh</h2></div>
+          <div style={{ background: 'rgba(0, 255, 136, 0.2)', padding: '15px', borderRadius: '50%' }}><DollarSign color="#00ff88"/></div>
+          <div><p style={{ margin: 0, color: '#ccc' }}>Spot Market Rate</p><h2 style={{ margin: 0, color: '#fff' }}>$0.12 <span style={{fontSize:'1rem', color:'#888'}}>/kWh</span></h2></div>
         </div>
         <div className="glass" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ background: 'rgba(0, 255, 136, 0.2)', padding: '15px', borderRadius: '50%' }}><ArrowRightLeft color="#00ff88"/></div>
-          <div><p style={{ margin: 0, color: '#ccc' }}>24h Volume</p><h2 style={{ margin: 0, color: '#fff' }}>1,245 kWh</h2></div>
+          <div style={{ background: 'rgba(0, 210, 255, 0.2)', padding: '15px', borderRadius: '50%' }}><ArrowRightLeft color="#00d2ff"/></div>
+          <div><p style={{ margin: 0, color: '#ccc' }}>24h Volume</p><h2 style={{ margin: 0, color: '#fff' }}>14.2 MWh</h2></div>
         </div>
         <div className="glass" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ background: 'rgba(255, 193, 7, 0.2)', padding: '15px', borderRadius: '50%' }}><Zap color="#ffc107"/></div>
-          <div><p style={{ margin: 0, color: '#ccc' }}>Active Nodes</p><h2 style={{ margin: 0, color: '#fff' }}>{nodes.length} Connected</h2></div>
+          <div style={{ background: 'rgba(255, 193, 7, 0.2)', padding: '15px', borderRadius: '50%' }}><Network color="#ffc107"/></div>
+          <div><p style={{ margin: 0, color: '#ccc' }}>Active Nodes</p><h2 style={{ margin: 0, color: '#fff' }}>42</h2></div>
         </div>
         <div className="glass" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ background: 'rgba(235, 59, 90, 0.2)', padding: '15px', borderRadius: '50%' }}><Leaf color="#eb3b5a"/></div>
-          <div><p style={{ margin: 0, color: '#ccc' }}>CO2 Offset</p><h2 style={{ margin: 0, color: '#fff' }}>840 kg</h2></div>
+          <div style={{ background: 'rgba(170, 170, 170, 0.2)', padding: '15px', borderRadius: '50%' }}><Leaf color="#aaa"/></div>
+          <div><p style={{ margin: 0, color: '#ccc' }}>CO2 Offset</p><h2 style={{ margin: 0, color: '#fff' }}>8.5 Tons</h2></div>
         </div>
       </div>
 
-      {/* Action Bar */}
-      <div className="glass" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0, 210, 255, 0.1)' }}>
-        <div>
-          <h2 style={{ margin: 0, color: '#fff', fontSize: '1.5rem' }}>Peer-to-Peer Energy Network</h2>
-          <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>Manage local energy sharing, bids, and the microgrid topology.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '15px' }}>
-          <button 
-            onClick={exportCSV} 
-            className="action-btn"
-            style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
-          >
-            <Download size={18} /> Export Ledger (CSV)
-          </button>
-          <button 
-            onClick={() => setShowMap(true)} 
-            className="action-btn"
-            style={{ background: '#00ff88', color: '#000', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0,255,136,0.3)' }}
-          >
-            <MapIcon size={18} /> Open Geographic Map
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content Split */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', flex: 1, minHeight: '400px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr', gap: '20px', flex: 1, minHeight: '400px' }}>
         
-        {/* Left: Active Nodes */}
-        <div className="glass" style={{ padding: '20px', display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ color: '#00d2ff', marginTop: 0 }}>Registered Network Nodes</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', overflowY: 'auto', flex: 1, paddingRight: '10px' }}>
-            {nodes.map(node => (
-              <div key={node.id} style={{ padding: '15px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fff', fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '10px' }}>
-                  {node.type === 'producer' ? <Zap color="#ffc107" /> : node.type === 'critical' ? <Server color="#eb3b5a" /> : <Home color="#00d2ff" />}
-                  {node.name}
+        {/* Real Geographic Map */}
+        <div className="glass" style={{ padding: '25px', display: 'flex', flexDirection: 'column' }}>
+          <h3 style={{ color: '#00d2ff', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><MapIcon size={20}/> Real-Time Node Map (Geographic)</h3>
+          
+          <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(0, 210, 255, 0.2)' }}>
+            <MapContainer center={[13.0827, 80.2707]} zoom={13} style={{ height: '100%', width: '100%' }}>
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+              />
+              {mapNodes.map(node => (
+                <div key={node.id}>
+                  <Marker position={[node.lat, node.lng]}>
+                    <Popup>
+                      <strong style={{ color: '#000' }}>{node.name}</strong><br/>
+                      Role: {node.role}<br/>
+                      Output: <span style={{ color: node.role === 'Consumer' ? 'red' : 'green' }}>{node.power}</span>
+                    </Popup>
+                  </Marker>
+                  <Circle center={[node.lat, node.lng]} pathOptions={{ color: node.role === 'Consumer' ? 'red' : '#00ff88', fillColor: node.role === 'Consumer' ? 'red' : '#00ff88' }} radius={400} />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ccc', fontSize: '0.9rem' }}>
-                  <span>Status: <strong style={{ color: '#00ff88' }}>Grid Synced</strong></span>
-                  <span>Role: <strong style={{ color: '#fff', textTransform: 'capitalize' }}>{node.type}</strong></span>
+              ))}
+            </MapContainer>
+          </div>
+        </div>
+
+        {/* Live Transaction Ledger */}
+        <div className="glass" style={{ padding: '25px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ color: '#00ff88', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><Activity size={20}/> Live P2P Ledger</h3>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={forceMarketClear} title="Force settle all transactions." className="action-btn" style={{ padding: '8px 12px', background: 'rgba(255, 193, 7, 0.1)', color: '#ffc107', border: '1px solid #ffc107', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <RefreshCw size={14}/> Settle
+              </button>
+              <button onClick={exportCSV} title="Download Ledger Data as CSV" className="action-btn" style={{ padding: '8px 12px', background: 'rgba(0, 210, 255, 0.1)', color: '#00d2ff', border: '1px solid #00d2ff', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Download size={14}/> Export
+              </button>
+            </div>
+          </div>
+          
+          <div id="ledger-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
+            {transactions.map((tx) => (
+              <div key={tx.id} style={{ background: 'rgba(0,0,0,0.3)', padding: '15px', borderRadius: '8px', borderLeft: '3px solid #00ff88', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#888', fontSize: '0.8rem' }}>TX: {tx.id} | {tx.timestamp}</span>
+                  <span style={{ color: '#00ff88', fontWeight: 'bold' }}>{tx.amount} kW</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fff', fontSize: '0.9rem' }}>
+                  <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '4px' }}>{tx.from}</span>
+                  <ArrowRightLeft size={14} color="#888" />
+                  <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '4px' }}>{tx.to}</span>
+                </div>
+                <div style={{ color: '#00d2ff', fontSize: '0.8rem', textAlign: 'right' }}>
+                  Rate: ${tx.rate}/kWh
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right: Live Transaction Ledger */}
-        <div className="glass" style={{ padding: '20px', display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ color: '#00ff88', marginTop: 0 }}>Live P2P Ledger (Blockchain Verified)</h3>
-          <div style={{ width: '100%', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', color: '#ccc', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  <th style={{ padding: '10px 0', color: '#fff' }}>Time</th>
-                  <th style={{ padding: '10px 0', color: '#fff' }}>Seller</th>
-                  <th style={{ padding: '10px 0', color: '#fff' }}>Buyer</th>
-                  <th style={{ padding: '10px 0', color: '#fff' }}>Vol (kWh)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.length === 0 && <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center' }}>Awaiting network activity...</td></tr>}
-                {transactions.map(tx => (
-                  <tr key={tx.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '12px 0' }}>{tx.time}</td>
-                    <td style={{ padding: '12px 0', color: '#ffc107' }}>{tx.seller}</td>
-                    <td style={{ padding: '12px 0', color: '#00d2ff' }}>{tx.buyer}</td>
-                    <td style={{ padding: '12px 0', fontWeight: 'bold', color: '#00ff88' }}>{tx.amount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
 
-      {/* Interactive Map Modal */}
-      {showMap && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(5, 10, 25, 0.95)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
-          <div className="glass" style={{ width: '85vw', height: '85vh', background: '#0b0f19', padding: '30px', display: 'flex', flexDirection: 'column', border: '1px solid rgba(0, 255, 136, 0.3)' }}>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div>
-                <h2 style={{ color: '#00ff88', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <MapIcon size={28}/> Interactive City Grid Map
-                </h2>
-                <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>Click on any empty plot to dynamically construct a new house and connect it to the grid.</p>
-              </div>
-              <button 
-                onClick={() => setShowMap(false)} 
-                className="action-btn"
-                style={{ background: 'rgba(235, 59, 90, 0.2)', border: '1px solid #eb3b5a', color: '#eb3b5a', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
-              >
-                <X size={18}/> Close Map
-              </button>
-            </div>
-            
-            <div style={{ flex: 1, border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', gap: '4px', background: '#111827', padding: '10px', overflow: 'hidden' }}>
-              {Array.from({ length: 60 }).map((_, i) => {
-                const x = i % 10;
-                const y = Math.floor(i / 10);
-                const node = nodes.find(n => n.x === x && n.y === y);
-                
-                return (
-                  <div 
-                    key={i} 
-                    onClick={() => handleMapClick(x, y)}
-                    style={{ 
-                      background: node ? (node.type === 'producer' ? 'rgba(255, 193, 7, 0.2)' : node.type === 'critical' ? 'rgba(235, 59, 90, 0.2)' : 'rgba(0, 210, 255, 0.2)') : '#1f2937', 
-                      border: node ? `2px solid ${node.type === 'producer' ? '#ffc107' : node.type === 'critical' ? '#eb3b5a' : '#00d2ff'}` : '1px dashed #374151',
-                      borderRadius: '8px',
-                      cursor: 'pointer', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                  >
-                    {node ? (
-                      <div style={{ textAlign: 'center' }}>
-                        {node.type === 'producer' ? <Zap color="#ffc107" size={24} /> : node.type === 'critical' ? <Server color="#eb3b5a" size={24} /> : <Home color="#00d2ff" size={24} />}
-                        <div style={{ fontSize: '10px', color: '#fff', marginTop: '4px', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {node.name}
-                        </div>
-                      </div>
-                    ) : (
-                      <Plus color="#4b5563" size={24} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal 
+        isOpen={!!modalConfig}
+        title={modalConfig?.title}
+        message={modalConfig?.message}
+        highlightArea={modalConfig?.highlightArea}
+        onConfirm={() => {
+          if (modalConfig?.action) modalConfig.action();
+          setModalConfig(null);
+        }}
+        onCancel={() => setModalConfig(null)}
+      />
     </div>
   );
 }
