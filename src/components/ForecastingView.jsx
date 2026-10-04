@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { CloudRain, TrendingUp } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { CloudRain, Sun, Wind, BrainCircuit, Activity, LineChart, Cpu, Umbrella, Map } from 'lucide-react';
 
 export default function ForecastingView() {
   const [data, setData] = useState([]);
+  const [weather, setWeather] = useState({ temp: 24, cloudCover: 30, wind: 12.5 });
 
   useEffect(() => {
     const fetchData = () => {
       fetch('/api/demand-forecast')
         .then(res => res.json())
-        .then(setData)
+        .then(d => {
+          setData(d);
+          setWeather({
+            temp: +(24 + (Math.random()*2-1)).toFixed(1),
+            cloudCover: Math.round(30 + (Math.random()*10-5)),
+            wind: +(12.5 + (Math.random()-0.5)).toFixed(1)
+          });
+        })
         .catch(err => console.log('Using fallback mock data'));
     };
     fetchData();
@@ -18,43 +25,66 @@ export default function ForecastingView() {
   }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
-      <div className="glass" style={{ padding: '20px' }}>
-        <h2 style={{ margin: 0, color: '#fff' }}>AI Weather & Generation Forecasting</h2>
-        <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>Anticipate renewable-energy gaps using localized ML weather models.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflowY: 'auto' }}>
+      
+      {/* Top Metrics Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+        <div className="glass" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ background: 'rgba(0, 210, 255, 0.2)', padding: '15px', borderRadius: '50%' }}><Sun color="#00d2ff"/></div>
+          <div><p style={{ margin: 0, color: '#ccc' }}>Ambient Temp</p><h2 style={{ margin: 0, color: '#fff' }}>{weather.temp}°C</h2></div>
+        </div>
+        <div className="glass" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ background: 'rgba(255, 193, 7, 0.2)', padding: '15px', borderRadius: '50%' }}><Wind color="#ffc107"/></div>
+          <div><p style={{ margin: 0, color: '#ccc' }}>Wind Speed</p><h2 style={{ margin: 0, color: '#fff' }}>{weather.wind} m/s</h2></div>
+        </div>
+        <div className="glass" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ background: 'rgba(170, 170, 170, 0.2)', padding: '15px', borderRadius: '50%' }}><Umbrella color="#aaa"/></div>
+          <div><p style={{ margin: 0, color: '#ccc' }}>Cloud Cover</p><h2 style={{ margin: 0, color: '#fff' }}>{weather.cloudCover}%</h2></div>
+        </div>
+        <div className="glass" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ background: 'rgba(0, 255, 136, 0.2)', padding: '15px', borderRadius: '50%' }}><BrainCircuit color="#00ff88"/></div>
+          <div><p style={{ margin: 0, color: '#ccc' }}>AI Confidence</p><h2 style={{ margin: 0, color: '#fff' }}>94.2%</h2></div>
+        </div>
       </div>
 
-      <div className="glass" style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <h3 style={{ color: '#00d2ff', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-          <TrendingUp /> 24-Hour Supply vs Demand Forecast
-        </h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', flex: 1, minHeight: '400px' }}>
         
-        <div style={{ flex: 1, minHeight: '300px' }}>
-          {data.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorSupply" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00ff88" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#00ff88" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorDemand" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#eb3b5a" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#eb3b5a" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="time" stroke="#8892b0" />
-                <YAxis stroke="#8892b0" />
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <Tooltip contentStyle={{ backgroundColor: '#0b0f19', border: '1px solid #00d2ff', borderRadius: '8px', color: '#fff' }} />
-                <Area type="monotone" dataKey="supply" name="Renewable Supply (kW)" stroke="#00ff88" fillOpacity={1} fill="url(#colorSupply)" />
-                <Area type="monotone" dataKey="demand" name="Grid Demand (kW)" stroke="#eb3b5a" fillOpacity={1} fill="url(#colorDemand)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#00d2ff' }}>Loading Forecast Models...</div>
-          )}
+        {/* Generative AI Forecast Chart Simulator */}
+        <div className="glass" style={{ padding: '25px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ color: '#00ff88', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><LineChart size={20}/> 24-Hour AI Load & Generation Forecast</h3>
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#ffc107', fontSize: '0.9rem' }}><span style={{ width: '12px', height: '12px', background: '#ffc107', borderRadius: '50%' }}/> Supply Forecast</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#eb3b5a', fontSize: '0.9rem' }}><span style={{ width: '12px', height: '12px', background: '#eb3b5a', borderRadius: '50%' }}/> Demand Forecast</span>
+            </div>
+          </div>
+          
+          {/* Simulated Chart using flex layout */}
+          <div style={{ flex: 1, background: '#111827', borderRadius: '12px', padding: '20px', display: 'flex', alignItems: 'flex-end', gap: '10px', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }}>
+            
+            {/* Grid lines */}
+            <div style={{ position: 'absolute', top: '20px', left: '20px', right: '20px', borderTop: '1px dashed rgba(255,255,255,0.1)' }}/>
+            <div style={{ position: 'absolute', top: '50%', left: '20px', right: '20px', borderTop: '1px dashed rgba(255,255,255,0.1)' }}/>
+            <div style={{ position: 'absolute', bottom: '40px', left: '20px', right: '20px', borderTop: '1px dashed rgba(255,255,255,0.1)' }}/>
+
+            {data.length === 0 ? <p style={{ color: '#888', margin: 'auto' }}>Generating forecast matrix...</p> : null}
+            
+            {data.map((d, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', height: '100%', justifyContent: 'flex-end', position: 'relative' }}>
+                <div style={{ position: 'absolute', bottom: '0', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', height: 'calc(100% - 40px)' }}>
+                  
+                  {/* Supply Bar */}
+                  <div style={{ width: '30%', height: `${(d.supply / 7000) * 100}%`, background: 'linear-gradient(0deg, rgba(255,193,7,0.2) 0%, rgba(255,193,7,1) 100%)', borderRadius: '4px 4px 0 0', marginRight: '2px', transition: 'height 0.5s' }} title={`Supply: ${d.supply}`} />
+                  
+                  {/* Demand Bar */}
+                  <div style={{ width: '30%', height: `${(d.demand / 7000) * 100}%`, background: 'linear-gradient(0deg, rgba(235,59,90,0.2) 0%, rgba(235,59,90,1) 100%)', borderRadius: '4px 4px 0 0', marginLeft: '2px', transition: 'height 0.5s' }} title={`Demand: ${d.demand}`} />
+                </div>
+                <span style={{ color: '#888', fontSize: '0.8rem', marginTop: 'auto' }}>{d.time}</span>
+              </div>
+            ))}
+          </div>
         </div>
+
       </div>
     </div>
   );

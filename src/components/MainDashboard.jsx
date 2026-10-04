@@ -53,7 +53,7 @@ export default function MainDashboard() {
             <spotLight position={[10, 20, 10]} intensity={1.5} color="#00ff88" />
             <spotLight position={[-10, 20, -10]} intensity={1} color="#00d2ff" />
             <Suspense fallback={null}>
-              <ThreeScene batteryLevel={gridData.batteryLevel} />
+              <ThreeScene batteryLevel={gridData.batteryLevel} coolingActive={triggerStatus === 'active'} />
             </Suspense>
             <OrbitControls enablePan={false} maxPolarAngle={Math.PI / 2.1} />
           </Canvas>

@@ -107,14 +107,20 @@ export function SolarPanel({ position, id, activeId, setActiveId }) {
   );
 }
 
-export function House({ position, color = "#4b7bec", name, powerStatus, connectionType, id, activeId, setActiveId }) {
+export function House({ position, color = "#4b7bec", name, powerStatus, connectionType, id, activeId, setActiveId, isCooling }) {
   const isActive = activeId === id;
   const isCritical = powerStatus === 'Protected';
+  
+  // If cooling is active on a non-critical load, override color to ice blue
+  const meshColor = (isCooling && !isCritical) ? '#00d2ff' : (isActive ? '#00ff88' : color);
+  const emissiveColor = (isCooling && !isCritical) ? '#00d2ff' : (isActive ? '#00ff88' : '#000');
+  const emissiveInt = (isCooling && !isCritical) ? 0.8 : (isActive ? 0.3 : 0);
+
   return (
     <group position={position} onClick={(e) => { e.stopPropagation(); setActiveId(isActive ? null : id); }}>
       <mesh position={[0, 0.5, 0]}>
         <boxGeometry args={[1.2, 1.2, 1.2]} />
-        <meshStandardMaterial color={isActive ? '#00ff88' : color} emissive={isActive ? '#00ff88' : '#000'} emissiveIntensity={0.3} />
+        <meshStandardMaterial color={meshColor} emissive={emissiveColor} emissiveIntensity={emissiveInt} />
       </mesh>
       <mesh position={[0, 1.4, 0]} rotation={[0, Math.PI / 4, 0]}>
         <coneGeometry args={[1, 0.6, 4]} />
@@ -125,11 +131,11 @@ export function House({ position, color = "#4b7bec", name, powerStatus, connecti
           title={name} 
           icon={<Home size={18} />} 
           stats={[
-            { label: 'Grid Status', value: powerStatus, color: isCritical ? '#ffc107' : '#00ff88' },
+            { label: 'Grid Status', value: isCooling && !isCritical ? 'Cooling Active' : powerStatus, color: isCritical ? '#ffc107' : (isCooling ? '#00d2ff' : '#00ff88') },
             { label: 'Connection Topology', value: connectionType || 'Parallel' },
-            { label: 'Current Demand', value: isCritical ? '240 kW' : '45 kW' },
+            { label: 'Current Demand', value: isCritical ? '240 kW' : (isCooling ? '12 kW' : '45 kW') },
             { label: 'Feeder', value: isCritical ? 'Feeder A' : 'Feeder B' },
-            { label: 'Demand Response', value: isCritical ? 'Opt-Out' : 'Active' }
+            { label: 'Demand Response', value: isCritical ? 'Opt-Out' : (isCooling ? 'Active Curtailment' : 'Standby') }
           ]}
           onClose={(e) => { e.stopPropagation(); setActiveId(null); }}
         />
@@ -195,7 +201,7 @@ function PowerGridLines() {
   );
 }
 
-export default function ThreeScene({ batteryLevel = 85 }) {
+export default function ThreeScene({ batteryLevel = 85, coolingActive = false }) {
   const [activeId, setActiveId] = useState(null);
 
   const handleBackgroundClick = (e) => {
@@ -224,12 +230,12 @@ export default function ThreeScene({ batteryLevel = 85 }) {
 
       <BatteryStorage id="batt1" activeId={activeId} setActiveId={setActiveId} position={[0, 0, -2]} charge={batteryLevel} />
 
-      <House id="h1" activeId={activeId} setActiveId={setActiveId} position={[-3, 0, 4]} name="Hospital" powerStatus="Protected" connectionType="Parallel Feeder" color="#eb3b5a" />
-      <House id="h2" activeId={activeId} setActiveId={setActiveId} position={[0, 0, 4]} name="Residential Block A" powerStatus="Shifted" connectionType="Parallel Feeder" color="#2bcbba" />
-      <House id="h3" activeId={activeId} setActiveId={setActiveId} position={[3, 0, 4]} name="Commercial District" powerStatus="Normal" connectionType="Parallel Feeder" color="#4b7bec" />
+      <House id="h1" activeId={activeId} setActiveId={setActiveId} position={[-3, 0, 4]} name="Hospital" powerStatus="Protected" connectionType="Parallel Feeder" color="#eb3b5a" isCooling={coolingActive} />
+      <House id="h2" activeId={activeId} setActiveId={setActiveId} position={[0, 0, 4]} name="Residential Block A" powerStatus="Shifted" connectionType="Parallel Feeder" color="#2bcbba" isCooling={coolingActive} />
+      <House id="h3" activeId={activeId} setActiveId={setActiveId} position={[3, 0, 4]} name="Commercial District" powerStatus="Normal" connectionType="Parallel Feeder" color="#4b7bec" isCooling={coolingActive} />
       
-      <House id="h4" activeId={activeId} setActiveId={setActiveId} position={[-1.5, 0, 6]} name="Street Lighting" powerStatus="Dimmed" connectionType="Series Loop" color="#a55eea" />
-      <House id="h5" activeId={activeId} setActiveId={setActiveId} position={[1.5, 0, 6]} name="Residential Block B" powerStatus="Normal" connectionType="Series Loop" color="#2bcbba" />
+      <House id="h4" activeId={activeId} setActiveId={setActiveId} position={[-1.5, 0, 6]} name="Street Lighting" powerStatus="Dimmed" connectionType="Series Loop" color="#a55eea" isCooling={coolingActive} />
+      <House id="h5" activeId={activeId} setActiveId={setActiveId} position={[1.5, 0, 6]} name="Residential Block B" powerStatus="Normal" connectionType="Series Loop" color="#2bcbba" isCooling={coolingActive} />
     </group>
   );
 }

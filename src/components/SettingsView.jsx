@@ -1,133 +1,120 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Shield, Bell, Network, Zap, CheckCircle2 } from 'lucide-react';
+import { Settings, Save, Server, Shield, Globe, Bell, Zap, Cpu } from 'lucide-react';
 
 export default function SettingsView() {
-  const [settings, setSettings] = useState({
+  const [config, setConfig] = useState({
     autoDemandResponse: true,
     p2pTrading: true,
     telemetryRate: '1s',
     alertThreshold: '90',
+    gridIslandMode: 'auto',
+    apiEndpoint: 'wss://core.gridsync.network/v1',
+    mlModel: 'xgboost-v4.2',
   });
-  const [saveStatus, setSaveStatus] = useState('idle'); // idle, saving, saved
+  
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => setSettings(data))
-      .catch(err => console.log('Using default local settings'));
+    fetch('/api/settings').then(res => res.json()).then(setConfig).catch(e => console.log('Mock'));
   }, []);
 
-  const handleChange = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setConfig(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
-  const handleSave = async () => {
-    setSaveStatus('saving');
-    try {
-      await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
-      });
-      setTimeout(() => setSaveStatus('saved'), 800);
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    } catch (e) {
-      setTimeout(() => setSaveStatus('saved'), 800);
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    }
+  const handleSave = () => {
+    setSaving(true);
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    }).then(() => {
+      setTimeout(() => setSaving(false), 800);
+    }).catch(() => {
+      setTimeout(() => setSaving(false), 800);
+    });
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', maxWidth: '800px' }}>
-      <div className="glass" style={{ padding: '20px' }}>
-        <h2 style={{ margin: 0, color: '#fff' }}>System Configuration</h2>
-        <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>Manage global parameters for the microgrid operation.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflowY: 'auto', paddingRight: '10px' }}>
+      
+      <div className="glass" style={{ padding: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2 style={{ margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}><Settings size={28}/> System Configuration</h2>
+          <p style={{ margin: '5px 0 0 0', color: '#ccc' }}>Modify global microgrid behavior, ML models, and networking endpoints.</p>
+        </div>
+        <button 
+          onClick={handleSave} 
+          className="action-btn"
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', background: saving ? '#ffc107' : '#00d2ff', color: '#000' }}
+        >
+          <Save size={18}/> {saving ? 'Applying Configuration...' : 'Save All Changes'}
+        </button>
       </div>
 
-      <div className="glass" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '25px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         
-        {/* Setting Item */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '20px' }}>
-          <div>
-            <h3 style={{ color: '#00d2ff', margin: '0 0 5px 0', display: 'flex', alignItems: 'center', gap: '8px' }}><Zap size={18}/> Autonomous Demand Response</h3>
-            <p style={{ color: '#8892b0', margin: 0, fontSize: '0.9rem' }}>Allow the system to automatically shed flexible loads during feeder stress.</p>
+        {/* Operational Policies */}
+        <div className="glass" style={{ padding: '25px' }}>
+          <h3 style={{ color: '#00ff88', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Shield size={20}/> Operational Policies</h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <div>
+                <strong style={{ color: '#fff', display: 'block' }}>Autonomous Demand Response</strong>
+                <span style={{ color: '#888', fontSize: '0.9rem' }}>Allow system to automatically shed non-critical loads</span>
+              </div>
+              <input type="checkbox" name="autoDemandResponse" checked={config.autoDemandResponse} onChange={handleChange} style={{ width: '20px', height: '20px' }} />
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <div>
+                <strong style={{ color: '#fff', display: 'block' }}>Peer-to-Peer Market Making</strong>
+                <span style={{ color: '#888', fontSize: '0.9rem' }}>Enable automated block trading between local nodes</span>
+              </div>
+              <input type="checkbox" name="p2pTrading" checked={config.p2pTrading} onChange={handleChange} style={{ width: '20px', height: '20px' }} />
+            </label>
+
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <strong style={{ color: '#fff' }}>Feeder Alert Threshold (%)</strong>
+              <input type="range" name="alertThreshold" min="50" max="100" value={config.alertThreshold} onChange={handleChange} style={{ width: '100%' }} />
+              <span style={{ color: '#00d2ff', fontWeight: 'bold', textAlign: 'right' }}>{config.alertThreshold}%</span>
+            </label>
           </div>
-          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-            <input 
-              type="checkbox" 
-              checked={settings.autoDemandResponse} 
-              onChange={(e) => handleChange('autoDemandResponse', e.target.checked)} 
-              style={{ width: '20px', height: '20px', accentColor: '#00ff88' }} 
-            />
-          </label>
         </div>
 
-        {/* Setting Item */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '20px' }}>
-          <div>
-            <h3 style={{ color: '#00d2ff', margin: '0 0 5px 0', display: 'flex', alignItems: 'center', gap: '8px' }}><Network size={18}/> Peer-to-Peer Trading Active</h3>
-            <p style={{ color: '#8892b0', margin: 0, fontSize: '0.9rem' }}>Enable local households to share surplus solar energy.</p>
-          </div>
-          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-            <input 
-              type="checkbox" 
-              checked={settings.p2pTrading} 
-              onChange={(e) => handleChange('p2pTrading', e.target.checked)} 
-              style={{ width: '20px', height: '20px', accentColor: '#00ff88' }} 
-            />
-          </label>
-        </div>
+        {/* Network & Machine Learning */}
+        <div className="glass" style={{ padding: '25px' }}>
+          <h3 style={{ color: '#ffc107', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Cpu size={20}/> Analytics & Telemetry</h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <strong style={{ color: '#fff' }}>Telemetry Refresh Rate</strong>
+              <select name="telemetryRate" value={config.telemetryRate} onChange={handleChange} style={{ background: '#111827', color: '#fff', padding: '10px', borderRadius: '4px', border: '1px solid #333', outline: 'none' }}>
+                <option value="100ms">Ultra-Fast (100ms)</option>
+                <option value="1s">Standard (1s)</option>
+                <option value="5s">Eco Mode (5s)</option>
+              </select>
+            </label>
 
-        {/* Setting Item */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '20px' }}>
-          <div>
-            <h3 style={{ color: '#00d2ff', margin: '0 0 5px 0', display: 'flex', alignItems: 'center', gap: '8px' }}><Shield size={18}/> Feeder Alert Threshold (%)</h3>
-            <p style={{ color: '#8892b0', margin: 0, fontSize: '0.9rem' }}>Capacity limit before triggering critical DISCOM alerts.</p>
-          </div>
-          <input 
-            type="number" 
-            value={settings.alertThreshold} 
-            onChange={(e) => handleChange('alertThreshold', e.target.value)} 
-            style={{ padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(0, 210, 255, 0.3)', color: '#fff', borderRadius: '6px', width: '80px', textAlign: 'center' }}
-          />
-        </div>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <strong style={{ color: '#fff' }}>Forecast ML Model Engine</strong>
+              <select name="mlModel" value={config.mlModel} onChange={handleChange} style={{ background: '#111827', color: '#fff', padding: '10px', borderRadius: '4px', border: '1px solid #333', outline: 'none' }}>
+                <option value="xgboost-v4.2">XGBoost Advanced Grid v4.2</option>
+                <option value="lstm-rnn">LSTM Neural Network (Experimental)</option>
+                <option value="linear-reg">Linear Regression (Fallback)</option>
+              </select>
+            </label>
 
-        {/* Setting Item */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h3 style={{ color: '#00d2ff', margin: '0 0 5px 0', display: 'flex', alignItems: 'center', gap: '8px' }}><Bell size={18}/> Telemetry Refresh Rate</h3>
-            <p style={{ color: '#8892b0', margin: 0, fontSize: '0.9rem' }}>How often IoT sensors push data to the central hub.</p>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <strong style={{ color: '#fff' }}>API Core Endpoint (WebSocket)</strong>
+              <input type="text" name="apiEndpoint" value={config.apiEndpoint} onChange={handleChange} style={{ background: '#111827', color: '#00d2ff', padding: '10px', borderRadius: '4px', border: '1px solid #333', outline: 'none' }} />
+            </label>
           </div>
-          <select 
-            value={settings.telemetryRate} 
-            onChange={(e) => handleChange('telemetryRate', e.target.value)}
-            style={{ padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(0, 210, 255, 0.3)', color: '#fff', borderRadius: '6px' }}
-          >
-            <option value="500ms">500 ms</option>
-            <option value="1s">1 Second</option>
-            <option value="5s">5 Seconds</option>
-          </select>
-        </div>
-        
-        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-          <button 
-            onClick={handleSave}
-            style={{ 
-              background: saveStatus === 'saved' ? '#00ff88' : 'rgba(0, 210, 255, 0.2)', 
-              color: saveStatus === 'saved' ? '#000' : '#00d2ff', 
-              border: saveStatus === 'saved' ? 'none' : '1px solid #00d2ff', 
-              padding: '12px 24px', 
-              borderRadius: '8px', 
-              cursor: 'pointer', 
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              transition: 'all 0.3s'
-            }}
-          >
-            {saveStatus === 'saved' ? <><CheckCircle2 size={18}/> Configuration Saved</> : <><Save size={18}/> Save Configuration</>}
-          </button>
         </div>
 
       </div>
