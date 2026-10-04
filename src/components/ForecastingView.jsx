@@ -1,54 +1,54 @@
-import React from 'react';
-import { CloudRain, Sun, Wind, CloudLightning } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CloudRain, TrendingUp } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function ForecastingView() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/demand-forecast')
+      .then(res => res.json())
+      .then(setData)
+      .catch(err => console.log('Using fallback mock data'));
+  }, []);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', height: '100%' }}>
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-        <div className="stat-card glass">
-          <div className="stat-icon"><Sun color="#ffc107" /></div>
-          <div className="stat-info">
-            <h3>Solar Irradiance</h3>
-            <p>850 W/m²</p>
-          </div>
-        </div>
-        <div className="stat-card glass">
-          <div className="stat-icon"><Wind color="#00d2ff" /></div>
-          <div className="stat-info">
-            <h3>Wind Speed</h3>
-            <p>12 m/s</p>
-          </div>
-        </div>
-        <div className="stat-card glass">
-          <div className="stat-icon"><CloudRain color="#888" /></div>
-          <div className="stat-info">
-            <h3>Precipitation Prob.</h3>
-            <p>15%</p>
-          </div>
-        </div>
-        <div className="stat-card glass">
-          <div className="stat-icon"><CloudLightning color="#ff4b4b" /></div>
-          <div className="stat-info">
-            <h3>Cloud Cover Alert</h3>
-            <p>Expected at 14:00</p>
-          </div>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
+      <div className="glass" style={{ padding: '20px' }}>
+        <h2 style={{ margin: 0, color: '#fff' }}>AI Weather & Generation Forecasting</h2>
+        <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>Anticipate renewable-energy gaps using localized ML weather models.</p>
       </div>
-      
-      <div className="glass" style={{ flex: 1, padding: '2rem' }}>
-        <h3>AI Generation Predictor Model</h3>
-        <p style={{ color: '#888', marginTop: '1rem' }}>
-          The machine learning forecasting model indicates a sharp 40% drop in solar generation between 14:00 and 16:00 due to an incoming storm cell. 
-          Demand Response and Battery dispatch protocols have been automatically pre-scheduled to bridge this intermittency gap.
-        </p>
-        <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(255,193,7,0.1)', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
-          <strong>System Action Log:</strong>
-          <ul style={{ marginTop: '0.5rem', marginLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', color: '#ccc' }}>
-            <li>[10:05 AM] Weather API synched: Storm cell detected.</li>
-            <li>[10:06 AM] Solar generation forecast revised down by 1.2 MW.</li>
-            <li>[10:06 AM] Scheduled battery pre-charging from Grid (Off-peak).</li>
-            <li>[10:07 AM] Sent intent signals to DISCOM feeder analytics.</li>
-          </ul>
+
+      <div className="glass" style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <h3 style={{ color: '#00d2ff', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+          <TrendingUp /> 24-Hour Supply vs Demand Forecast
+        </h3>
+        
+        <div style={{ flex: 1, minHeight: '300px' }}>
+          {data.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorSupply" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00ff88" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#00ff88" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorDemand" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#eb3b5a" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#eb3b5a" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="time" stroke="#8892b0" />
+                <YAxis stroke="#8892b0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <Tooltip contentStyle={{ backgroundColor: '#0b0f19', border: '1px solid #00d2ff', borderRadius: '8px', color: '#fff' }} />
+                <Area type="monotone" dataKey="supply" name="Renewable Supply (kW)" stroke="#00ff88" fillOpacity={1} fill="url(#colorSupply)" />
+                <Area type="monotone" dataKey="demand" name="Grid Demand (kW)" stroke="#eb3b5a" fillOpacity={1} fill="url(#colorDemand)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#00d2ff' }}>Loading Forecast Models...</div>
+          )}
         </div>
       </div>
     </div>

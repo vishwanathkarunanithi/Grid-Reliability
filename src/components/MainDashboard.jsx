@@ -21,9 +21,9 @@ export default function MainDashboard() {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '20px', height: '100%' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', height: '100%' }}>
       {/* Left Column: 3D Microgrid View */}
-      <div className="glass" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative' }}>
+      <div className="glass" style={{ flex: '1 1 500px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', minHeight: '400px' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.2rem', color: '#00d2ff' }}>
           <Activity size={20} /> Live Holographic Grid Topology
         </h3>
@@ -43,7 +43,7 @@ export default function MainDashboard() {
       </div>
 
       {/* Right Column: Actions & Stats */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
         {/* Demand Response Trigger */}
         <div className="glass" style={{ padding: '20px', background: 'rgba(235, 59, 90, 0.1)', border: '1px solid rgba(235, 59, 90, 0.3)' }}>

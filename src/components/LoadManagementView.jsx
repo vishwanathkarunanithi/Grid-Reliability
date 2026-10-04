@@ -1,57 +1,62 @@
-import React from 'react';
-import { Cpu, ZapOff, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Cpu, Power, ShieldCheck, ThermometerSnowflake } from 'lucide-react';
 
 export default function LoadManagementView() {
+  const [data, setData] = useState({
+    sheddingActive: false,
+    criticalLoad: '1.2 MW',
+    flexibleLoad: '800 kW'
+  });
+
+  const [toggled, setToggled] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/load')
+      .then(res => res.json())
+      .then(d => {
+        setData(d);
+        setToggled(d.sheddingActive);
+      })
+      .catch(err => console.log('Using fallback mock data'));
+  }, []);
+
+  const handleToggle = () => {
+    setToggled(!toggled);
+    // In a real app this would POST to the backend
+  };
+
   return (
-    <div style={{ display: 'flex', gap: '2rem', height: '100%' }}>
-      <div className="control-panel glass" style={{ flex: 2 }}>
-        <h3>Active Demand Response Rules</h3>
-        <div className="load-items">
-          <div className="load-item">
-            <div className="load-info">
-              <span className="load-name">Critical Infrastructure (Hospital & Clinic)</span>
-              <span className="load-desc">Feeder A - Uninterruptible (Battery Backup Priority 1)</span>
-            </div>
-            <span className="badge critical">Protected</span>
-          </div>
-          <div className="load-item">
-            <div className="load-info">
-              <span className="load-name">Residential HVAC & Heaters</span>
-              <span className="load-desc">Feeder B - Shifted by 2 hours due to intermittency</span>
-            </div>
-            <span className="badge flexible"><ZapOff size={12}/> Curtailed</span>
-          </div>
-          <div className="load-item">
-            <div className="load-info">
-              <span className="load-name">Public Street Lighting</span>
-              <span className="load-desc">Feeder C - Dimmed to 60% capacity</span>
-            </div>
-            <span className="badge flexible">Dimmed</span>
-          </div>
-          <div className="load-item">
-            <div className="load-info">
-              <span className="load-name">Commercial District Operations</span>
-              <span className="load-desc">Feeder D - Normal Operations</span>
-            </div>
-            <span className="badge normal"><CheckCircle size={12}/> Normal</span>
-          </div>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
+      <div className="glass" style={{ padding: '20px' }}>
+        <h2 style={{ margin: 0, color: '#fff' }}>Smart Load Management</h2>
+        <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>Prioritize critical infrastructure and shift flexible loads automatically.</p>
       </div>
-      
-      <div className="glass" style={{ flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <h3>Manual Overrides</h3>
-        <p style={{ color: '#888', fontSize: '0.875rem', marginBottom: '1rem' }}>
-          Execute emergency load shedding protocols if automated systems fail to balance the grid.
-        </p>
-        <button className="action-btn" style={{ background: 'transparent', border: '1px solid #00d2ff', color: '#00d2ff' }}>
-          Trigger Pre-Cooling
-        </button>
-        <button className="action-btn" style={{ background: 'transparent', border: '1px solid #ffc107', color: '#ffc107' }}>
-          Curtail Non-Critical
-        </button>
-        <button className="action-btn" style={{ background: 'rgba(255, 75, 75, 0.1)', border: '1px solid #ff4b4b', color: '#ff4b4b' }}>
-          Emergency Feeder Shutdown
-        </button>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="glass" style={{ padding: '25px', border: toggled ? '1px solid #00ff88' : '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><ThermometerSnowflake color="#00d2ff"/> Demand Response Protocol</h3>
+            <button 
+              onClick={handleToggle}
+              style={{ background: toggled ? '#00ff88' : 'rgba(255,255,255,0.1)', border: 'none', padding: '10px 20px', borderRadius: '20px', color: toggled ? '#000' : '#fff', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              {toggled ? 'ACTIVE' : 'STANDBY'}
+            </button>
+          </div>
+          <p style={{ color: '#ccc' }}>When active, non-critical loads (like residential HVAC units) will be temporarily modulated to prevent feeder overload.</p>
+        </div>
+
+        <div className="glass" style={{ padding: '25px' }}>
+          <h3 style={{ color: '#eb3b5a', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><ShieldCheck /> Protected Critical Loads</h3>
+          <h1 style={{ color: '#fff', margin: 0 }}>{data.criticalLoad}</h1>
+          <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>Hospital, Water Treatment, Emergency Services</p>
+        </div>
+
+        <div className="glass" style={{ padding: '25px' }}>
+          <h3 style={{ color: '#00d2ff', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Power /> Shiftable Flexible Loads</h3>
+          <h1 style={{ color: '#fff', margin: 0 }}>{data.flexibleLoad}</h1>
+          <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>Residential EV Chargers, HVAC, Water Heaters</p>
+        </div>
       </div>
     </div>
   );
