@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { Html, QuadraticBezierLine } from '@react-three/drei';
 import * as THREE from 'three';
 import { Zap, Sun, Wind, Home } from 'lucide-react';
 
@@ -107,7 +107,7 @@ export function SolarPanel({ position, id, activeId, setActiveId }) {
   );
 }
 
-export function House({ position, color = "#4b7bec", name, powerStatus, id, activeId, setActiveId }) {
+export function House({ position, color = "#4b7bec", name, powerStatus, connectionType, id, activeId, setActiveId }) {
   const isActive = activeId === id;
   const isCritical = powerStatus === 'Protected';
   return (
@@ -126,6 +126,7 @@ export function House({ position, color = "#4b7bec", name, powerStatus, id, acti
           icon={<Home size={18} />} 
           stats={[
             { label: 'Grid Status', value: powerStatus, color: isCritical ? '#ffc107' : '#00ff88' },
+            { label: 'Connection Topology', value: connectionType || 'Parallel' },
             { label: 'Current Demand', value: isCritical ? '240 kW' : '45 kW' },
             { label: 'Feeder', value: isCritical ? 'Feeder A' : 'Feeder B' },
             { label: 'Demand Response', value: isCritical ? 'Opt-Out' : 'Active' }
@@ -155,10 +156,11 @@ export function BatteryStorage({ position, charge, id, activeId, setActiveId }) 
       </mesh>
       {isActive && (
         <InfoPopup 
-          title="Community Storage" 
+          title="Community Storage Hub" 
           icon={<Zap size={18} />} 
           stats={[
             { label: 'State of Charge', value: `${charge}%`, color: '#00ff88' },
+            { label: 'Role', value: 'Central Node (Parallel)' },
             { label: 'Total Capacity', value: '1.0 MWh' },
             { label: 'Discharge Rate', value: '0 kW (Standby)' }
           ]}
@@ -169,10 +171,33 @@ export function BatteryStorage({ position, charge, id, activeId, setActiveId }) 
   );
 }
 
+// Power lines visualization
+function PowerGridLines() {
+  const batteryPos = [0, 0.2, -2];
+  const h1 = [-3, 0.2, 4];
+  const h2 = [0, 0.2, 4];
+  const h3 = [3, 0.2, 4];
+  const wt = [-4, 0.2, -4];
+  
+  return (
+    <group>
+      {/* Parallel connections to central battery */}
+      <QuadraticBezierLine start={batteryPos} end={h1} mid={[-1.5, 0, 1]} color="#00ff88" lineWidth={2} dashed dashScale={10} dashSize={1} dashOffset={-0.1} />
+      <QuadraticBezierLine start={batteryPos} end={h2} mid={[0, 0, 1]} color="#00ff88" lineWidth={2} dashed dashScale={10} dashSize={1} />
+      <QuadraticBezierLine start={batteryPos} end={h3} mid={[1.5, 0, 1]} color="#00ff88" lineWidth={2} dashed dashScale={10} dashSize={1} />
+      
+      {/* Generation input to battery */}
+      <QuadraticBezierLine start={wt} end={batteryPos} mid={[-2, 0, -3]} color="#00d2ff" lineWidth={2} dashed dashScale={10} dashSize={1} />
+      
+      {/* Series connection between residential blocks */}
+      <QuadraticBezierLine start={[-1.5, 0.2, 6]} end={[1.5, 0.2, 6]} mid={[0, 0.2, 6.5]} color="#ffc107" lineWidth={1.5} />
+    </group>
+  );
+}
+
 export default function ThreeScene({ batteryLevel = 85 }) {
   const [activeId, setActiveId] = useState(null);
 
-  // Deselect when clicking the background grid
   const handleBackgroundClick = (e) => {
     setActiveId(null);
   };
@@ -186,6 +211,8 @@ export default function ThreeScene({ batteryLevel = 85 }) {
         <gridHelper args={[16, 16, '#00ff88', '#223344']} rotation={[Math.PI / 2, 0, 0]} />
       </mesh>
 
+      <PowerGridLines />
+
       {/* Elements */}
       <WindTurbine id="wt1" activeId={activeId} setActiveId={setActiveId} position={[-4, 0, -4]} speed={0.05} />
       <WindTurbine id="wt2" activeId={activeId} setActiveId={setActiveId} position={[-6, 0, -2]} speed={0.07} />
@@ -197,11 +224,12 @@ export default function ThreeScene({ batteryLevel = 85 }) {
 
       <BatteryStorage id="batt1" activeId={activeId} setActiveId={setActiveId} position={[0, 0, -2]} charge={batteryLevel} />
 
-      <House id="h1" activeId={activeId} setActiveId={setActiveId} position={[-3, 0, 4]} name="Hospital" powerStatus="Protected" color="#eb3b5a" />
-      <House id="h2" activeId={activeId} setActiveId={setActiveId} position={[0, 0, 4]} name="Residential Block A" powerStatus="Shifted" color="#2bcbba" />
-      <House id="h3" activeId={activeId} setActiveId={setActiveId} position={[3, 0, 4]} name="Commercial District" powerStatus="Normal" color="#4b7bec" />
-      <House id="h4" activeId={activeId} setActiveId={setActiveId} position={[-1.5, 0, 6]} name="Street Lighting" powerStatus="Dimmed" color="#a55eea" />
-      <House id="h5" activeId={activeId} setActiveId={setActiveId} position={[1.5, 0, 6]} name="Residential Block B" powerStatus="Normal" color="#2bcbba" />
+      <House id="h1" activeId={activeId} setActiveId={setActiveId} position={[-3, 0, 4]} name="Hospital" powerStatus="Protected" connectionType="Parallel Feeder" color="#eb3b5a" />
+      <House id="h2" activeId={activeId} setActiveId={setActiveId} position={[0, 0, 4]} name="Residential Block A" powerStatus="Shifted" connectionType="Parallel Feeder" color="#2bcbba" />
+      <House id="h3" activeId={activeId} setActiveId={setActiveId} position={[3, 0, 4]} name="Commercial District" powerStatus="Normal" connectionType="Parallel Feeder" color="#4b7bec" />
+      
+      <House id="h4" activeId={activeId} setActiveId={setActiveId} position={[-1.5, 0, 6]} name="Street Lighting" powerStatus="Dimmed" connectionType="Series Loop" color="#a55eea" />
+      <House id="h5" activeId={activeId} setActiveId={setActiveId} position={[1.5, 0, 6]} name="Residential Block B" powerStatus="Normal" connectionType="Series Loop" color="#2bcbba" />
     </group>
   );
 }
