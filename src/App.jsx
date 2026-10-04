@@ -12,22 +12,23 @@ export default function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: '#030510', overflow: 'hidden', position: 'relative' }}>
-      
-      {/* View Switcher */}
-      <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 1000, display: 'flex', gap: '10px' }}>
-        <button 
-          onClick={() => setViewMode('2D')} 
-          style={{ whiteSpace: 'nowrap', background: viewMode === '2D' ? 'rgba(0,210,255,0.4)' : 'rgba(0,210,255,0.1)', border: '1px solid #00d2ff', color: '#00d2ff', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', backdropFilter: 'blur(10px)' }}
-        >
-          <Monitor size={18} /> Standard View
-        </button>
-        <button 
-          onClick={() => setViewMode('3D')} 
-          style={{ whiteSpace: 'nowrap', background: viewMode === '3D' ? 'rgba(0,255,136,0.4)' : 'rgba(0,255,136,0.1)', border: '1px solid #00ff88', color: '#00ff88', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', backdropFilter: 'blur(10px)' }}
-        >
-          <Box size={18} /> 3D Holographic
-        </button>
-      </div>
+      {/* View Switcher (Only absolute in 3D mode) */}
+      {viewMode === '3D' && (
+        <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 1000, display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={() => setViewMode('2D')} 
+            style={{ whiteSpace: 'nowrap', background: viewMode === '2D' ? 'rgba(0,210,255,0.4)' : 'rgba(0,210,255,0.1)', border: '1px solid #00d2ff', color: '#00d2ff', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', backdropFilter: 'blur(10px)' }}
+          >
+            <Monitor size={18} /> Standard View
+          </button>
+          <button 
+            onClick={() => setViewMode('3D')} 
+            style={{ whiteSpace: 'nowrap', background: viewMode === '3D' ? 'rgba(0,255,136,0.4)' : 'rgba(0,255,136,0.1)', border: '1px solid #00ff88', color: '#00ff88', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', backdropFilter: 'blur(10px)' }}
+          >
+            <Box size={18} /> 3D Holographic
+          </button>
+        </div>
+      )}
 
       {viewMode === '3D' ? (
         <>
@@ -71,7 +72,7 @@ export default function App() {
           </Canvas>
         </>
       ) : (
-        <NormalDashboard />
+        <NormalDashboard viewMode={viewMode} setViewMode={setViewMode} />
       )}
     </div>
   );

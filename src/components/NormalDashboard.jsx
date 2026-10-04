@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Battery, Zap, AlertTriangle, Wind, Sun, Home, Server, Activity, Settings, CloudRain, Cpu } from 'lucide-react';
+import { Battery, Zap, AlertTriangle, Wind, Sun, Home, Server, Activity, Settings, CloudRain, Cpu, Monitor, Box } from 'lucide-react';
 import MainDashboard from './MainDashboard';
 import StorageView from './StorageView';
 import CommunityView from './CommunityView';
@@ -9,7 +9,7 @@ import ForecastingView from './ForecastingView';
 import SettingsView from './SettingsView';
 import '../App.css';
 
-export default function NormalDashboard() {
+export default function NormalDashboard({ viewMode, setViewMode }) {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const renderContent = () => {
@@ -70,9 +70,20 @@ export default function NormalDashboard() {
             {activeTab === 'forecast' && 'AI Weather & Generation Forecasting'}
             {activeTab === 'settings' && 'System Configuration'}
           </h2>
-          <div className="status-badge stable" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '20px', fontWeight: 500, background: 'rgba(0, 255, 136, 0.1)', color: '#00ff88', border: '1px solid rgba(0, 255, 136, 0.2)' }}>
-            <AlertTriangle size={16} />
-            <span>Grid Node: Active</span>
+          
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => setViewMode('2D')} 
+              style={{ whiteSpace: 'nowrap', background: viewMode === '2D' ? 'rgba(0,210,255,0.4)' : 'rgba(0,210,255,0.1)', border: '1px solid #00d2ff', color: '#00d2ff', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', backdropFilter: 'blur(10px)' }}
+            >
+              <Monitor size={18} /> Standard View
+            </button>
+            <button 
+              onClick={() => setViewMode('3D')} 
+              style={{ whiteSpace: 'nowrap', background: viewMode === '3D' ? 'rgba(0,255,136,0.4)' : 'rgba(0,255,136,0.1)', border: '1px solid #00ff88', color: '#00ff88', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', backdropFilter: 'blur(10px)' }}
+            >
+              <Box size={18} /> 3D Holographic
+            </button>
           </div>
         </header>
         
