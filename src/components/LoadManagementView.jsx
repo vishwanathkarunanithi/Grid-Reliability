@@ -11,13 +11,18 @@ export default function LoadManagementView() {
   const [toggled, setToggled] = useState(false);
 
   useEffect(() => {
-    fetch('/api/load')
-      .then(res => res.json())
-      .then(d => {
-        setData(d);
-        setToggled(d.sheddingActive);
-      })
-      .catch(err => console.log('Using fallback mock data'));
+    const fetchData = () => {
+      fetch('/api/load')
+        .then(res => res.json())
+        .then(d => {
+          setData(d);
+          setToggled(d.sheddingActive);
+        })
+        .catch(err => console.log('Using fallback mock data'));
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleToggle = () => {

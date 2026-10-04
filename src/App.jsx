@@ -59,15 +59,14 @@ export default function App() {
           <Canvas camera={{ position: [0, 5, 20], fov: 60 }}>
             <color attach="background" args={['#030510']} />
             <ambientLight intensity={0.5} />
-            <spotLight position={[10, 20, 10]} angle={0.2} penumbra={1} intensity={2} castShadow color="#00ff88" />
-            <spotLight position={[-10, 20, -10]} angle={0.2} penumbra={1} intensity={1} castShadow color="#00d2ff" />
-            <Stars radius={100} depth={50} count={3000} factor={4} saturation={1} fade speed={1.5} />
+            <spotLight position={[10, 20, 10]} angle={0.2} penumbra={1} intensity={2} color="#00ff88" />
+            <spotLight position={[-10, 20, -10]} angle={0.2} penumbra={1} intensity={1} color="#00d2ff" />
+            <Stars radius={100} depth={50} count={800} factor={4} saturation={1} fade speed={1} />
             
             <Suspense fallback={null}>
               <DashboardScene />
             </Suspense>
 
-            <ContactShadows resolution={1024} scale={100} blur={2} opacity={0.4} far={20} color="#00d2ff" />
             <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2.1} />
           </Canvas>
         </>

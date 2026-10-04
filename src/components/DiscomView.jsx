@@ -9,10 +9,15 @@ export default function DiscomView() {
   });
 
   useEffect(() => {
-    fetch('/api/discom')
-      .then(res => res.json())
-      .then(setData)
-      .catch(err => console.log('Using fallback mock data'));
+    const fetchData = () => {
+      fetch('/api/discom')
+        .then(res => res.json())
+        .then(setData)
+        .catch(err => console.log('Using fallback mock data'));
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   return (

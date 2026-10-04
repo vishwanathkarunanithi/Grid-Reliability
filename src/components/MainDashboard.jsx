@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Activity, AlertTriangle, Zap, Wind, Battery, ThermometerSnowflake, CheckCircle2 } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
@@ -20,6 +20,24 @@ export default function MainDashboard() {
     }
   };
 
+  const [gridData, setGridData] = useState({
+    demand: 4.2,
+    solarGeneration: 2.1,
+    batteryLevel: 85
+  });
+
+  useEffect(() => {
+    const fetchGridStatus = () => {
+      fetch('/api/grid-status')
+        .then(res => res.json())
+        .then(data => setGridData(data))
+        .catch(err => console.log('Mock'));
+    };
+    fetchGridStatus();
+    const interval = setInterval(fetchGridStatus, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', height: '100%' }}>
       {/* Left Column: 3D Microgrid View */}
@@ -30,12 +48,12 @@ export default function MainDashboard() {
         
         {/* Embedded 3D Scene */}
         <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', background: '#030510', border: '1px solid rgba(0, 210, 255, 0.2)' }}>
-          <Canvas camera={{ position: [0, 5, 12], fov: 60 }}>
+          <Canvas camera={{ position: [0, 5, 12], fov: 60 }} performance={{ min: 0.5 }}>
             <ambientLight intensity={0.5} />
-            <spotLight position={[10, 20, 10]} intensity={2} color="#00ff88" />
+            <spotLight position={[10, 20, 10]} intensity={1.5} color="#00ff88" />
             <spotLight position={[-10, 20, -10]} intensity={1} color="#00d2ff" />
             <Suspense fallback={null}>
-              <ThreeScene batteryLevel={85} />
+              <ThreeScene batteryLevel={gridData.batteryLevel} />
             </Suspense>
             <OrbitControls enablePan={false} maxPolarAngle={Math.PI / 2.1} />
           </Canvas>
@@ -46,7 +64,7 @@ export default function MainDashboard() {
       <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
         {/* Demand Response Trigger */}
-        <div className="glass" style={{ padding: '20px', background: 'rgba(235, 59, 90, 0.1)', border: '1px solid rgba(235, 59, 90, 0.3)' }}>
+        <div className="glass" style={{ padding: '20px', background: 'rgba(235, 59, 90, 0.1)', border: '1px solid rgba(235, 59, 90, 0.3)', transition: 'all 0.3s' }}>
           <h3 style={{ color: '#eb3b5a', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <AlertTriangle size={20} /> Feeder Overload Risk
           </h3>
@@ -57,6 +75,7 @@ export default function MainDashboard() {
           <button 
             onClick={handleTriggerCooling}
             disabled={triggerStatus !== 'idle'}
+            className="action-btn"
             style={{ 
               width: '100%', 
               padding: '12px', 
@@ -69,7 +88,9 @@ export default function MainDashboard() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '10px'
+              gap: '10px',
+              boxShadow: triggerStatus === 'idle' ? '0 0 15px rgba(235,59,90,0.5)' : 'none',
+              transform: triggerStatus === 'active' ? 'scale(0.98)' : 'scale(1)'
             }}
           >
             {triggerStatus === 'idle' && <><ThermometerSnowflake size={18} /> Trigger Smart Cooling Protocol</>}
@@ -84,15 +105,15 @@ export default function MainDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}><Zap size={16} /> Total Demand</span>
-              <strong style={{ color: '#fff' }}>4.2 MW</strong>
+              <strong style={{ color: '#fff', fontSize: '1.2rem' }}>{gridData.demand} MW</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}><Wind size={16} /> Renewable Gen</span>
-              <strong style={{ color: '#00d2ff' }}>2.1 MW</strong>
+              <strong style={{ color: '#00d2ff', fontSize: '1.2rem' }}>{gridData.solarGeneration} MW</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}><Battery size={16} /> Battery Discharge</span>
-              <strong style={{ color: '#00ff88' }}>2.1 MW</strong>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc' }}><Battery size={16} /> Battery SOC</span>
+              <strong style={{ color: '#00ff88', fontSize: '1.2rem' }}>{gridData.batteryLevel}%</strong>
             </div>
           </div>
         </div>

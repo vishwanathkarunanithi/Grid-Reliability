@@ -214,4 +214,27 @@
 .action-btn:hover {
   background: #00e077;
   transform: scale(1.02);
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+}
+
+.action-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 0 5px rgba(0, 255, 136, 0.4);
+}
+
+/* Global Button Glow Effects */
+button {
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.2);
+  box-shadow: 0 0 12px currentColor;
+}
+
+button:active {
+  transform: translateY(1px);
+  filter: brightness(0.9);
+  box-shadow: 0 0 4px currentColor;
 }

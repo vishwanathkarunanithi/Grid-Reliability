@@ -6,10 +6,15 @@ export default function ForecastingView() {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    fetch('/api/demand-forecast')
-      .then(res => res.json())
-      .then(setData)
-      .catch(err => console.log('Using fallback mock data'));
+    const fetchData = () => {
+      fetch('/api/demand-forecast')
+        .then(res => res.json())
+        .then(setData)
+        .catch(err => console.log('Using fallback mock data'));
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
