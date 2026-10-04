@@ -3,9 +3,11 @@ import { Activity, AlertTriangle, Zap, Wind, Battery, ThermometerSnowflake, Chec
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import ThreeScene from './ThreeScene';
+import ConfirmModal from './ConfirmModal';
 
 export default function MainDashboard() {
   const [triggerStatus, setTriggerStatus] = useState('idle'); // idle, triggering, active
+  const [modalConfig, setModalConfig] = useState(null);
 
   const handleTriggerCooling = async () => {
     setTriggerStatus('triggering');
