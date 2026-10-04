@@ -31,27 +31,27 @@ def test_frontend():
         wait = WebDriverWait(driver, 10)
         
         # 1. Test Navigation Overlay
-        guide_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Hide Guide')]")))
+        guide_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Hide Guide')]")))
         print("PASS: 3D Interface Guide is rendered.")
         guide_button.click()
         print("PASS: 3D Interface Guide can be collapsed.")
         
         # 2. Test View Switcher
-        standard_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Standard View')]")
+        standard_btn = driver.find_element(By.XPATH, "//button[contains(., 'Standard View')]")
         standard_btn.click()
         print("PASS: Successfully switched to Standard View.")
         
         # Wait for 2D UI to render
-        dashboard_title = wait.until(EC.presence_of_element_located((By.XPATH, "//h2[contains(text(), 'Microgrid Operations Overview')]")))
+        dashboard_title = wait.until(EC.presence_of_element_located((By.XPATH, "//h2[contains(., 'Microgrid Operations Overview')]")))
         print("PASS: Standard 2D Dashboard loaded.")
         
         # Test 2D sidebar tabs
-        storage_tab = driver.find_element(By.XPATH, "//li[contains(text(), 'Storage Systems')]")
+        storage_tab = driver.find_element(By.XPATH, "//li[contains(., 'Storage Systems')]")
         storage_tab.click()
         print("PASS: Successfully navigated to Storage Systems module in 2D mode.")
         
         # Switch back to 3D View
-        holographic_btn = driver.find_element(By.XPATH, "//button[contains(text(), '3D Holographic')]")
+        holographic_btn = driver.find_element(By.XPATH, "//button[contains(., '3D Holographic')]")
         holographic_btn.click()
         print("PASS: Successfully switched back to 3D Holographic View.")
         
